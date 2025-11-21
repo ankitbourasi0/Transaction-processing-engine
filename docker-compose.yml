@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # PostgresSQL Database
+  postgres:
+    image: postgres:14
+    container_name: postgres_db
+    ports:  
+      - "5432:5432" # default port
+    restart: always
+    environment: 
+      #database name and user credentials
+      POSTGRES_DB: transaction_processing_engine
+      POSTGRES_USER:  tpe
+      POSTGRES_PASSWORD: Postgres@app123
+    volumes:
+      #Database store the data at host machine, that path
+      - postgres_data:/var/lib/postgresql/data
+   
+  # KAFKA BROKER
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    ports: 
+      - "9092:9092"
+    restart: always
+    depends_on: 
+      - zookeeper # kafka depend on zookeeper
+    environment:
+      #give path to kafka for zookeeper
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # internal communication (dusre containers ke liye)
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      # external communication host machine ke liye
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  # zookeeper kafka's dependency
+  zookeeper:  
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    ports: 
+      - "2181:2181" #client port
+    restart: always
+    environment: 
+      # zookeeper ko apni id configure karne ke liye
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+volumes:
+  postgres_data:
+     # here we are not giving any config, only declaring, because docker use default local driver  
+    external: false
